@@ -19,7 +19,58 @@ class TTCLS_Helpers {
 				$length++;
 				$attempts = 0;
 			}
-		} while ( TTCLS_DB::slug_exists( $slug ) );
+		} while ( TTCLS_DB::slug_exists( $slug ) || self::is_reserved_slug( $slug ) );
+		return $slug;
+	}
+
+	const SLUG_MIN = 3;
+	const SLUG_MAX = 64;
+
+	public static function reserved_slugs() {
+		$base = [
+			TTCLS_PAGE_SLUG,
+			'wp-admin', 'wp-login', 'wp-content', 'wp-includes', 'wp-json',
+			'admin', 'login', 'logout', 'register', 'feed', 'rss', 'comments',
+			'sitemap', 'sitemap.xml', 'sitemap_index.xml', 'robots.txt',
+			'favicon.ico', 'xmlrpc.php', 'api', 'cron',
+		];
+		return apply_filters( 'ttcls_reserved_slugs', $base );
+	}
+
+	public static function is_reserved_slug( $slug ) {
+		$slug = strtolower( $slug );
+		if ( in_array( $slug, array_map( 'strtolower', self::reserved_slugs() ), true ) ) {
+			return true;
+		}
+		if ( get_page_by_path( $slug ) ) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Validate a user-supplied custom slug.
+	 * Returns sanitized slug string on success, or WP_Error.
+	 */
+	public static function validate_custom_slug( $slug ) {
+		$slug = trim( (string) $slug );
+		if ( '' === $slug ) {
+			return new WP_Error( 'ttcls_slug_empty', __( 'Custom slug is empty.', 'ttc-link-shortener' ) );
+		}
+		if ( ! preg_match( '/^[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?$/', $slug ) ) {
+			return new WP_Error( 'ttcls_slug_chars', __( 'Slug can contain letters, numbers, hyphens, underscores. Must start and end with a letter or number.', 'ttc-link-shortener' ) );
+		}
+		$len = strlen( $slug );
+		if ( $len < self::SLUG_MIN || $len > self::SLUG_MAX ) {
+			/* translators: 1: min length, 2: max length */
+			return new WP_Error( 'ttcls_slug_len', sprintf( __( 'Slug must be %1$d–%2$d characters.', 'ttc-link-shortener' ), self::SLUG_MIN, self::SLUG_MAX ) );
+		}
+		if ( self::is_reserved_slug( $slug ) ) {
+			return new WP_Error( 'ttcls_slug_reserved', __( 'That slug is reserved. Please pick another.', 'ttc-link-shortener' ) );
+		}
+		if ( TTCLS_DB::slug_exists( $slug ) ) {
+			return new WP_Error( 'ttcls_slug_taken', __( 'That slug is already taken. Please pick another.', 'ttc-link-shortener' ) );
+		}
 		return $slug;
 	}
 

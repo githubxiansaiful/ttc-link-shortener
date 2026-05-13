@@ -18,3 +18,5 @@ $admin = get_role( 'administrator' );
 if ( $admin ) {
 	$admin->remove_cap( 'ttcls_manage_links' );
 }
+
+delete_option( 'ttcls_db_version' );

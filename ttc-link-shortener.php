@@ -3,7 +3,7 @@
  * Plugin Name:       TTC Link Shortener
  * Plugin URI:        https://xiansaiful.com/
  * Description:       Custom URL shortener with a branded dashboard for the short_manager role.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Xian Saiful
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'TTCLS_VERSION',   '1.0.0' );
+define( 'TTCLS_VERSION',   '1.1.0' );
 define( 'TTCLS_FILE',      __FILE__ );
 define( 'TTCLS_PATH',      plugin_dir_path( __FILE__ ) );
 define( 'TTCLS_URL',       plugin_dir_url( __FILE__ ) );

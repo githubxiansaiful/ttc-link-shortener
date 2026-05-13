@@ -238,11 +238,13 @@
 		if (!form) return;
 		const msgEl = $('[data-ttcls-form-msg]', form);
 		const input = form.querySelector('input[name="url"]');
+		const slugInput = form.querySelector('input[name="slug"]');
 		const submitBtn = form.querySelector('button[type="submit"]');
 
 		form.addEventListener('submit', function (e) {
 			e.preventDefault();
 			const url = (input.value || '').trim();
+			const slug = slugInput ? (slugInput.value || '').trim() : '';
 
 			msgEl.textContent = '';
 			msgEl.classList.remove('is-error', 'is-success');
@@ -254,19 +256,33 @@
 				return;
 			}
 
+			if (slug && !/^[A-Za-z0-9](?:[A-Za-z0-9_-]{1,62}[A-Za-z0-9])?$/.test(slug)) {
+				msgEl.textContent = i18n.invalid_slug || 'Slug can contain letters, numbers, hyphens, underscores (3–64 chars).';
+				msgEl.classList.add('is-error');
+				slugInput.focus();
+				return;
+			}
+
+			const payload = { url: url };
+			if (slug) payload.slug = slug;
+
 			submitBtn.disabled = true;
-			ajax('ttcls_create', { url: url })
+			ajax('ttcls_create', payload)
 				.then(function (resp) {
 					if (!resp || !resp.success) {
 						const err = resp && resp.data && resp.data.message ? resp.data.message : (i18n.create_failed || 'Failed');
 						msgEl.textContent = err;
 						msgEl.classList.add('is-error');
+						if (resp && resp.data && resp.data.field === 'slug' && slugInput) {
+							slugInput.focus();
+						}
 						return;
 					}
 					const row = resp.data;
-					msgEl.textContent = (i18n.copied ? '' : '') + row.short_url;
+					msgEl.textContent = row.short_url;
 					msgEl.classList.add('is-success');
 					input.value = '';
+					if (slugInput) slugInput.value = '';
 
 					// Prepend to recent list
 					const list = $('[data-ttcls-recent]');

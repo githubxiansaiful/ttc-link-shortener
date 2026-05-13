@@ -46,6 +46,20 @@ $site_host    = wp_parse_url( home_url(), PHP_URL_HOST );
 					<?php esc_html_e( 'Shorten', 'ttc-link-shortener' ); ?>
 				</button>
 			</div>
+			<div class="ttcls-input-row ttcls-slug-row">
+				<span class="ttcls-slug-prefix"><?php echo esc_html( $site_host . '/' ); ?></span>
+				<input type="text"
+				       class="ttcls-input ttcls-slug-input"
+				       name="slug"
+				       maxlength="64"
+				       autocomplete="off"
+				       spellcheck="false"
+				       pattern="[A-Za-z0-9][A-Za-z0-9_-]{1,62}[A-Za-z0-9]"
+				       placeholder="<?php esc_attr_e( 'custom-slug (optional)', 'ttc-link-shortener' ); ?>">
+			</div>
+			<p class="ttcls-form-hint">
+				<?php esc_html_e( 'Leave the slug blank to auto-generate a 6-character code. Letters, numbers, hyphens and underscores allowed (3–64 chars).', 'ttc-link-shortener' ); ?>
+			</p>
 			<p class="ttcls-form-msg" data-ttcls-form-msg role="status" aria-live="polite"></p>
 		</form>
 	</div>

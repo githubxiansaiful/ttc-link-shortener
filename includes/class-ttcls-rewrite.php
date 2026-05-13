@@ -29,7 +29,7 @@ class TTCLS_Rewrite {
 			return;
 		}
 
-		if ( ! preg_match( '/^[A-Za-z0-9]{6}$/', $path ) ) {
+		if ( ! preg_match( '/^[A-Za-z0-9][A-Za-z0-9_-]{1,62}[A-Za-z0-9]$/', $path ) ) {
 			return;
 		}
 

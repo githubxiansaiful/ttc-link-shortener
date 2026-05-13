@@ -48,6 +48,7 @@ class TTCLS_Assets {
 			'page_url'    => home_url( '/' . TTCLS_PAGE_SLUG . '/' ),
 			'i18n'        => [
 				'invalid_url'    => __( 'Please enter a valid URL', 'ttc-link-shortener' ),
+				'invalid_slug'   => __( 'Slug can contain letters, numbers, hyphens, underscores (3–64 chars).', 'ttc-link-shortener' ),
 				'copied'         => __( 'Copied!', 'ttc-link-shortener' ),
 				'copy'           => __( 'Copy', 'ttc-link-shortener' ),
 				'confirm_del'    => __( 'Delete this link?', 'ttc-link-shortener' ),

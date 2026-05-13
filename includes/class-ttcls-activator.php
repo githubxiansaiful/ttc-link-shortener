@@ -7,6 +7,7 @@ class TTCLS_Activator {
 
 	public static function activate() {
 		TTCLS_DB::create_table();
+		update_option( 'ttcls_db_version', TTCLS_VERSION, false );
 		TTCLS_Roles::add_role();
 		self::create_dashboard_page();
 		flush_rewrite_rules();

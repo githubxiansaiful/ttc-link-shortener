@@ -69,7 +69,24 @@ class TTCLS_Ajax {
 			wp_send_json_error( [ 'message' => __( 'Invalid URL', 'ttc-link-shortener' ) ], 400 );
 		}
 
-		$slug = TTCLS_Helpers::generate_slug();
+		$custom_raw = isset( $_POST['slug'] ) ? wp_unslash( $_POST['slug'] ) : '';
+		$custom_raw = is_string( $custom_raw ) ? trim( $custom_raw ) : '';
+
+		if ( '' !== $custom_raw ) {
+			$validated = TTCLS_Helpers::validate_custom_slug( $custom_raw );
+			if ( is_wp_error( $validated ) ) {
+				$code   = $validated->get_error_code();
+				$status = ( 'ttcls_slug_taken' === $code || 'ttcls_slug_reserved' === $code ) ? 409 : 400;
+				wp_send_json_error( [
+					'message' => $validated->get_error_message(),
+					'field'   => 'slug',
+					'code'    => $code,
+				], $status );
+			}
+			$slug = $validated;
+		} else {
+			$slug = TTCLS_Helpers::generate_slug();
+		}
 		$id   = TTCLS_DB::insert_link( $slug, $url, get_current_user_id() );
 		if ( ! $id ) {
 			wp_send_json_error( [ 'message' => __( 'DB error', 'ttc-link-shortener' ) ], 500 );

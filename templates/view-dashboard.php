@@ -85,7 +85,10 @@ $site_host    = wp_parse_url( home_url(), PHP_URL_HOST );
 					<?php
 					$short_url = TTCLS_Helpers::short_url( $row->slug );
 					?>
-					<li class="ttcls-link-row" data-ttcls-row="<?php echo esc_attr( $row->id ); ?>">
+					<li class="ttcls-link-row"
+					    data-ttcls-row="<?php echo esc_attr( $row->id ); ?>"
+					    data-ttcls-slug="<?php echo esc_attr( $row->slug ); ?>"
+					    data-ttcls-destination="<?php echo esc_attr( $row->destination_url ); ?>">
 						<div class="ttcls-link-main">
 							<a class="ttcls-link-short" href="<?php echo esc_url( $short_url ); ?>" target="_blank" rel="noopener">
 								<?php echo esc_html( $site_host . '/' . $row->slug ); ?>
@@ -105,6 +108,12 @@ $site_host    = wp_parse_url( home_url(), PHP_URL_HOST );
 								<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 									<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
 									<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+								</svg>
+							</button>
+							<button type="button" class="ttcls-iconbtn" data-ttcls-edit="<?php echo esc_attr( $row->id ); ?>" aria-label="<?php esc_attr_e( 'Edit link', 'ttc-link-shortener' ); ?>">
+								<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<path d="M12 20h9"></path>
+									<path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
 								</svg>
 							</button>
 							<button type="button" class="ttcls-iconbtn ttcls-iconbtn-danger" data-ttcls-delete="<?php echo esc_attr( $row->id ); ?>" aria-label="<?php esc_attr_e( 'Delete link', 'ttc-link-shortener' ); ?>">

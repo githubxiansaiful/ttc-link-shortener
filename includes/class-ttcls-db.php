@@ -198,11 +198,41 @@ class TTCLS_DB {
 		return (int) $wpdb->get_var( "SELECT COALESCE(SUM(clicks),0) FROM {$table}" );
 	}
 
-	public static function slug_exists( $slug ) {
+	public static function slug_exists( $slug, $exclude_id = 0 ) {
 		global $wpdb;
-		$table = self::table();
+		$table      = self::table();
+		$exclude_id = (int) $exclude_id;
+		if ( $exclude_id > 0 ) {
+			return (bool) $wpdb->get_var(
+				$wpdb->prepare( "SELECT id FROM {$table} WHERE slug = %s AND id <> %d LIMIT 1", $slug, $exclude_id )
+			);
+		}
 		return (bool) $wpdb->get_var(
 			$wpdb->prepare( "SELECT id FROM {$table} WHERE slug = %s LIMIT 1", $slug )
 		);
+	}
+
+	public static function update_link( $id, $slug, $url, $user_id ) {
+		global $wpdb;
+		$table = self::table();
+		$id    = (int) $id;
+		$row   = self::get_by_id( $id );
+		if ( ! $row ) {
+			return false;
+		}
+		if ( ! current_user_can( 'manage_options' ) && (int) $row->created_by !== (int) $user_id ) {
+			return false;
+		}
+		$result = $wpdb->update(
+			$table,
+			[
+				'slug'            => $slug,
+				'destination_url' => $url,
+			],
+			[ 'id' => $id ],
+			[ '%s', '%s' ],
+			[ '%d' ]
+		);
+		return false !== $result;
 	}
 }

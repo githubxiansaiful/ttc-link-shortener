@@ -7,6 +7,7 @@ class TTCLS_Ajax {
 
 	public static function init() {
 		add_action( 'wp_ajax_ttcls_create', [ __CLASS__, 'create' ] );
+		add_action( 'wp_ajax_ttcls_update', [ __CLASS__, 'update' ] );
 		add_action( 'wp_ajax_ttcls_delete', [ __CLASS__, 'delete' ] );
 		add_action( 'wp_ajax_ttcls_list',   [ __CLASS__, 'listing' ] );
 		add_action( 'wp_ajax_nopriv_ttcls_login', [ __CLASS__, 'login' ] );
@@ -100,6 +101,71 @@ class TTCLS_Ajax {
 			'clicks'      => 0,
 			'created_at'  => gmdate( 'Y-m-d H:i:s' ),
 			'totals'      => self::totals(),
+		] );
+	}
+
+	public static function update() {
+		self::guard();
+
+		$id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+		if ( $id <= 0 ) {
+			wp_send_json_error( [ 'message' => __( 'Invalid ID', 'ttc-link-shortener' ) ], 400 );
+		}
+
+		$row = TTCLS_DB::get_by_id( $id );
+		if ( ! $row ) {
+			wp_send_json_error( [ 'message' => __( 'Link not found', 'ttc-link-shortener' ) ], 404 );
+		}
+		if ( ! current_user_can( 'manage_options' ) && (int) $row->created_by !== (int) get_current_user_id() ) {
+			wp_send_json_error( [ 'message' => __( 'Forbidden', 'ttc-link-shortener' ) ], 403 );
+		}
+
+		$raw = isset( $_POST['url'] ) ? wp_unslash( $_POST['url'] ) : '';
+		$url = TTCLS_Helpers::validate_url( $raw );
+		if ( ! $url ) {
+			wp_send_json_error( [ 'message' => __( 'Invalid URL', 'ttc-link-shortener' ) ], 400 );
+		}
+
+		$slug_raw = isset( $_POST['slug'] ) ? wp_unslash( $_POST['slug'] ) : '';
+		$slug_raw = is_string( $slug_raw ) ? trim( $slug_raw ) : '';
+		if ( '' === $slug_raw ) {
+			wp_send_json_error( [
+				'message' => __( 'Slug is required.', 'ttc-link-shortener' ),
+				'field'   => 'slug',
+			], 400 );
+		}
+
+		if ( $slug_raw === $row->slug ) {
+			$slug = $row->slug;
+		} else {
+			$validated = TTCLS_Helpers::validate_custom_slug( $slug_raw, $id );
+			if ( is_wp_error( $validated ) ) {
+				$code   = $validated->get_error_code();
+				$status = ( 'ttcls_slug_taken' === $code || 'ttcls_slug_reserved' === $code ) ? 409 : 400;
+				wp_send_json_error( [
+					'message' => $validated->get_error_message(),
+					'field'   => 'slug',
+					'code'    => $code,
+				], $status );
+			}
+			$slug = $validated;
+		}
+
+		$ok = TTCLS_DB::update_link( $id, $slug, $url, get_current_user_id() );
+		if ( ! $ok ) {
+			wp_send_json_error( [ 'message' => __( 'Update failed', 'ttc-link-shortener' ) ], 500 );
+		}
+
+		$fresh = TTCLS_DB::get_by_id( $id );
+		wp_send_json_success( [
+			'id'              => (int) $fresh->id,
+			'slug'            => $fresh->slug,
+			'short_url'       => TTCLS_Helpers::short_url( $fresh->slug ),
+			'destination'     => $fresh->destination_url,
+			'clicks'          => (int) $fresh->clicks,
+			'created_at'      => $fresh->created_at,
+			'last_clicked_at' => $fresh->last_clicked_at,
+			'totals'          => self::totals(),
 		] );
 	}
 

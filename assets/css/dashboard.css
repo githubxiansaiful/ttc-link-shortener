@@ -494,6 +494,11 @@
 	font-weight: 600;
 	text-decoration: none;
 	font-size: 14px;
+	display: block;
+	max-width: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 .ttcls-link-short:hover { text-decoration: underline; }
 
@@ -560,7 +565,7 @@
 }
 
 .ttcls-table .ttcls-num { text-align: right; }
-.ttcls-table .ttcls-actions-col { text-align: right; width: 110px; }
+.ttcls-table .ttcls-actions-col { text-align: right; width: 150px; white-space: nowrap; }
 
 .ttcls-table tbody tr:hover { background: var(--ttcls-surface-2); }
 
@@ -626,6 +631,70 @@
 .ttcls-toast.is-visible {
 	opacity: 1;
 	transform: translateY(0);
+}
+
+/* ============ Modal ============ */
+.ttcls-modal {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.6);
+	display: none;
+	align-items: center;
+	justify-content: center;
+	z-index: 1100;
+	padding: 24px;
+	font-family: var(--ttcls-font);
+	color: var(--ttcls-text);
+}
+.ttcls-modal.is-open { display: flex; }
+
+.ttcls-modal-card {
+	background: var(--ttcls-surface);
+	border: 1px solid var(--ttcls-border);
+	border-radius: var(--ttcls-radius-lg);
+	width: 100%;
+	max-width: 480px;
+	padding: 22px;
+	box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.ttcls-modal-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.ttcls-modal-title {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+}
+
+.ttcls-modal-close {
+	background: transparent;
+	border: 1px solid var(--ttcls-border);
+	color: var(--ttcls-text-muted);
+	width: 32px;
+	height: 32px;
+	border-radius: 8px;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	transition: background 0.12s ease, color 0.12s ease;
+}
+.ttcls-modal-close:hover { background: var(--ttcls-surface-2); color: var(--ttcls-text); }
+
+.ttcls-modal-foot {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 4px;
 }
 
 /* ============ Standalone body ============ */
@@ -751,6 +820,76 @@ body.ttcls-standalone {
 .ttcls-login-foot a:hover {
 	color: var(--ttcls-brand);
 	text-decoration: underline;
+}
+
+/* ============ Mobile: All Links table → cards ============ */
+@media (max-width: 640px) {
+	.ttcls-table-wrap { overflow-x: hidden; margin: 0; }
+	.ttcls-table thead { display: none; }
+	.ttcls-table,
+	.ttcls-table tbody,
+	.ttcls-table tr,
+	.ttcls-table td { display: block; width: 100%; }
+	.ttcls-table tr {
+		background: var(--ttcls-surface-2);
+		border: 1px solid var(--ttcls-border);
+		border-radius: var(--ttcls-radius);
+		padding: 10px 12px;
+		margin-bottom: 10px;
+	}
+	.ttcls-table tr:hover { background: var(--ttcls-surface-2); }
+	.ttcls-table td {
+		padding: 8px 0;
+		border-bottom: 1px dashed var(--ttcls-border);
+		display: block;
+		text-align: left;
+		min-width: 0;
+	}
+	.ttcls-table td:last-child { border-bottom: 0; }
+	.ttcls-table td::before {
+		content: attr(data-label);
+		display: block;
+		color: var(--ttcls-text-muted);
+		font-size: 11px;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		margin-bottom: 4px;
+	}
+	.ttcls-table td.ttcls-cell-dest {
+		max-width: none;
+		white-space: normal;
+		word-break: break-all;
+	}
+	.ttcls-table td .ttcls-link-short {
+		text-align: left;
+		max-width: 100%;
+	}
+	.ttcls-table td.ttcls-num { text-align: left; }
+	.ttcls-table td.ttcls-actions-col {
+		width: 100%;
+		text-align: left;
+	}
+	.ttcls-table td.ttcls-actions-col .ttcls-iconbtn { margin-right: 6px; }
+	.ttcls-table td[data-label]:empty::after { content: '—'; color: var(--ttcls-text-muted); }
+	.ttcls-card-foot { flex-direction: column; align-items: stretch; gap: 8px; }
+	.ttcls-pager { justify-content: space-between; }
+}
+
+/* ============ Mobile: link rows ============ */
+@media (max-width: 560px) {
+	.ttcls-link-row {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 8px;
+	}
+	.ttcls-link-meta {
+		justify-content: flex-end;
+		flex-wrap: wrap;
+	}
+	.ttcls-link-dest {
+		font-size: 12px;
+	}
 }
 
 /* ============ Mobile ============ */

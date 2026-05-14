@@ -52,7 +52,7 @@ class TTCLS_Helpers {
 	 * Validate a user-supplied custom slug.
 	 * Returns sanitized slug string on success, or WP_Error.
 	 */
-	public static function validate_custom_slug( $slug ) {
+	public static function validate_custom_slug( $slug, $exclude_id = 0 ) {
 		$slug = trim( (string) $slug );
 		if ( '' === $slug ) {
 			return new WP_Error( 'ttcls_slug_empty', __( 'Custom slug is empty.', 'ttc-link-shortener' ) );
@@ -68,7 +68,7 @@ class TTCLS_Helpers {
 		if ( self::is_reserved_slug( $slug ) ) {
 			return new WP_Error( 'ttcls_slug_reserved', __( 'That slug is reserved. Please pick another.', 'ttc-link-shortener' ) );
 		}
-		if ( TTCLS_DB::slug_exists( $slug ) ) {
+		if ( TTCLS_DB::slug_exists( $slug, $exclude_id ) ) {
 			return new WP_Error( 'ttcls_slug_taken', __( 'That slug is already taken. Please pick another.', 'ttc-link-shortener' ) );
 		}
 		return $slug;

@@ -197,8 +197,16 @@
 		if (clicks && typeof totals.clicks !== 'undefined') clicks.textContent = totals.clicks;
 	}
 
+	// ---------- Row data cache (id -> {slug, destination}) ----------
+	const rowCache = {};
+	function cacheRow(row) {
+		if (!row || !row.id) return;
+		rowCache[row.id] = { slug: row.slug, destination: row.destination };
+	}
+
 	// ---------- Render: recent row ----------
 	function renderRecentRow(row) {
+		cacheRow(row);
 		const host = siteHost();
 		const li = document.createElement('li');
 		li.className = 'ttcls-link-row';
@@ -218,6 +226,12 @@
 					'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
 						'<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>' +
 						'<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>' +
+					'</svg>' +
+				'</button>' +
+				'<button type="button" class="ttcls-iconbtn" data-ttcls-edit="' + row.id + '" aria-label="' + escapeHtml(i18n.edit || 'Edit') + '">' +
+					'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+						'<path d="M12 20h9"></path>' +
+						'<path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>' +
 					'</svg>' +
 				'</button>' +
 				'<button type="button" class="ttcls-iconbtn ttcls-iconbtn-danger" data-ttcls-delete="' + row.id + '" aria-label="Delete">' +
@@ -368,19 +382,32 @@
 			return;
 		}
 		const host = siteHost();
+		const lbl = {
+			short: escapeHtml(i18n.col_short || 'Short URL'),
+			dest:  escapeHtml(i18n.col_dest  || 'Destination'),
+			clk:   escapeHtml(i18n.col_clicks|| 'Clicks'),
+			crt:   escapeHtml(i18n.col_created|| 'Created'),
+			act:   escapeHtml(i18n.col_actions|| 'Actions')
+		};
 		const html = rows.map(function (row) {
+			cacheRow(row);
 			const dateStr = (row.created_at || '').replace('T', ' ').slice(0, 16);
 			return '<tr data-ttcls-row="' + row.id + '">' +
-				'<td><a class="ttcls-link-short" href="' + escapeHtml(row.short_url) + '" target="_blank" rel="noopener">' +
+				'<td data-label="' + lbl.short + '"><a class="ttcls-link-short" href="' + escapeHtml(row.short_url) + '" target="_blank" rel="noopener">' +
 					escapeHtml(host + '/' + row.slug) + '</a></td>' +
-				'<td class="ttcls-cell-dest" title="' + escapeHtml(row.destination) + '">' + escapeHtml(row.destination) + '</td>' +
-				'<td class="ttcls-num">' + row.clicks + '</td>' +
-				'<td>' + escapeHtml(dateStr) + '</td>' +
-				'<td class="ttcls-actions-col">' +
+				'<td class="ttcls-cell-dest" data-label="' + lbl.dest + '" title="' + escapeHtml(row.destination) + '">' + escapeHtml(row.destination) + '</td>' +
+				'<td class="ttcls-num" data-label="' + lbl.clk + '">' + row.clicks + '</td>' +
+				'<td data-label="' + lbl.crt + '">' + escapeHtml(dateStr) + '</td>' +
+				'<td class="ttcls-actions-col" data-label="' + lbl.act + '">' +
 					'<button type="button" class="ttcls-iconbtn" data-ttcls-copy="' + escapeHtml(row.short_url) + '" aria-label="Copy">' +
 						'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
 							'<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>' +
 							'<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>' +
+						'</svg></button>' +
+					'<button type="button" class="ttcls-iconbtn" data-ttcls-edit="' + row.id + '" aria-label="' + escapeHtml(i18n.edit || 'Edit') + '">' +
+						'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+							'<path d="M12 20h9"></path>' +
+							'<path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>' +
 						'</svg></button>' +
 					'<button type="button" class="ttcls-iconbtn ttcls-iconbtn-danger" data-ttcls-delete="' + row.id + '" aria-label="Delete">' +
 						'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
@@ -450,6 +477,215 @@
 		}
 
 		loadList();
+	}
+
+	// ---------- Edit modal ----------
+	let editModal = null;
+	let editState = { id: 0 };
+
+	function buildEditModal() {
+		const wrap = document.createElement('div');
+		wrap.className = 'ttcls-modal';
+		wrap.setAttribute('data-ttcls-modal', 'edit');
+		wrap.setAttribute('role', 'dialog');
+		wrap.setAttribute('aria-modal', 'true');
+		wrap.innerHTML =
+			'<div class="ttcls-modal-card">' +
+				'<header class="ttcls-modal-head">' +
+					'<h3 class="ttcls-modal-title">' + escapeHtml(i18n.edit_title || 'Edit Link') + '</h3>' +
+					'<button type="button" class="ttcls-modal-close" data-ttcls-modal-close aria-label="' + escapeHtml(i18n.cancel || 'Cancel') + '">' +
+						'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+							'<line x1="18" y1="6" x2="6" y2="18"></line>' +
+							'<line x1="6" y1="6" x2="18" y2="18"></line>' +
+						'</svg>' +
+					'</button>' +
+				'</header>' +
+				'<form class="ttcls-form" data-ttcls-form="edit" novalidate>' +
+					'<div class="ttcls-field">' +
+						'<label class="ttcls-field-label" for="ttcls-edit-url">' + escapeHtml(i18n.destination || 'Destination URL') + '</label>' +
+						'<input type="url" id="ttcls-edit-url" name="url" class="ttcls-input" required>' +
+					'</div>' +
+					'<div class="ttcls-field">' +
+						'<label class="ttcls-field-label" for="ttcls-edit-slug">' + escapeHtml(i18n.slug_label || 'Slug') + '</label>' +
+						'<div class="ttcls-input-row ttcls-slug-row">' +
+							'<span class="ttcls-slug-prefix">' + escapeHtml(siteHost() + '/') + '</span>' +
+							'<input type="text" id="ttcls-edit-slug" name="slug" class="ttcls-input ttcls-slug-input" required>' +
+						'</div>' +
+					'</div>' +
+					'<p class="ttcls-form-msg" data-ttcls-form-msg></p>' +
+					'<div class="ttcls-modal-foot">' +
+						'<button type="button" class="ttcls-btn ttcls-btn-ghost" data-ttcls-modal-close>' + escapeHtml(i18n.cancel || 'Cancel') + '</button>' +
+						'<button type="submit" class="ttcls-btn ttcls-btn-primary">' + escapeHtml(i18n.save || 'Save changes') + '</button>' +
+					'</div>' +
+				'</form>' +
+			'</div>';
+		document.body.appendChild(wrap);
+		return wrap;
+	}
+
+	function openEditModal(id) {
+		if (!editModal) editModal = buildEditModal();
+		const data = rowCache[id];
+		if (!data) {
+			toast(i18n.update_failed || 'Failed');
+			return;
+		}
+		editState.id = id;
+		const form = editModal.querySelector('[data-ttcls-form="edit"]');
+		form.querySelector('input[name="url"]').value = data.destination || '';
+		form.querySelector('input[name="slug"]').value = data.slug || '';
+		const msg = form.querySelector('[data-ttcls-form-msg]');
+		msg.textContent = '';
+		msg.classList.remove('is-error', 'is-success');
+		editModal.classList.add('is-open');
+		document.body.classList.add('ttcls-no-scroll');
+		setTimeout(function () { form.querySelector('input[name="url"]').focus(); }, 20);
+	}
+
+	function closeEditModal() {
+		if (!editModal) return;
+		editModal.classList.remove('is-open');
+		document.body.classList.remove('ttcls-no-scroll');
+		editState.id = 0;
+	}
+
+	function applyRowUpdate(row) {
+		const host = siteHost();
+		cacheRow(row);
+		$$('[data-ttcls-row="' + row.id + '"]').forEach(function (el) {
+			// Table row
+			if (el.tagName === 'TR') {
+				const cells = el.children;
+				if (cells[0]) {
+					const a = cells[0].querySelector('a.ttcls-link-short');
+					if (a) {
+						a.href = row.short_url;
+						a.textContent = host + '/' + row.slug;
+					}
+				}
+				if (cells[1]) {
+					cells[1].setAttribute('title', row.destination);
+					cells[1].textContent = row.destination;
+				}
+				const copyBtn = el.querySelector('[data-ttcls-copy]');
+				if (copyBtn) copyBtn.setAttribute('data-ttcls-copy', row.short_url);
+				return;
+			}
+			// Recent list row
+			const a = el.querySelector('a.ttcls-link-short');
+			if (a) {
+				a.href = row.short_url;
+				a.textContent = host + '/' + row.slug;
+			}
+			const dest = el.querySelector('.ttcls-link-dest');
+			if (dest) {
+				dest.setAttribute('title', row.destination);
+				dest.textContent = row.destination;
+			}
+			const copyBtn = el.querySelector('[data-ttcls-copy]');
+			if (copyBtn) copyBtn.setAttribute('data-ttcls-copy', row.short_url);
+		});
+	}
+
+	function primeCacheFromDom() {
+		$$('[data-ttcls-row][data-ttcls-slug]').forEach(function (el) {
+			const id = parseInt(el.getAttribute('data-ttcls-row'), 10);
+			if (!id) return;
+			rowCache[id] = {
+				slug: el.getAttribute('data-ttcls-slug') || '',
+				destination: el.getAttribute('data-ttcls-destination') || ''
+			};
+		});
+	}
+
+	function initEdit() {
+		primeCacheFromDom();
+		document.addEventListener('click', function (e) {
+			const btn = e.target.closest('[data-ttcls-edit]');
+			if (btn) {
+				e.preventDefault();
+				const id = parseInt(btn.getAttribute('data-ttcls-edit'), 10);
+				if (id > 0) openEditModal(id);
+				return;
+			}
+			if (e.target.closest('[data-ttcls-modal-close]')) {
+				closeEditModal();
+				return;
+			}
+			if (editModal && e.target === editModal) {
+				closeEditModal();
+			}
+		});
+
+		document.addEventListener('keydown', function (e) {
+			if (e.key === 'Escape' && editModal && editModal.classList.contains('is-open')) {
+				closeEditModal();
+			}
+		});
+
+		document.addEventListener('submit', function (e) {
+			const form = e.target.closest('[data-ttcls-form="edit"]');
+			if (!form) return;
+			e.preventDefault();
+			const id = editState.id;
+			if (!id) return;
+			const urlInput = form.querySelector('input[name="url"]');
+			const slugInput = form.querySelector('input[name="slug"]');
+			const msg = form.querySelector('[data-ttcls-form-msg]');
+			const submitBtn = form.querySelector('button[type="submit"]');
+			const submitLabel = submitBtn.textContent;
+
+			const url = (urlInput.value || '').trim();
+			const slug = (slugInput.value || '').trim();
+
+			msg.textContent = '';
+			msg.classList.remove('is-error', 'is-success');
+
+			if (!isValidUrl(url)) {
+				msg.textContent = i18n.invalid_url || 'Please enter a valid URL';
+				msg.classList.add('is-error');
+				urlInput.focus();
+				return;
+			}
+			if (!slug) {
+				msg.textContent = i18n.slug_required || 'Slug is required.';
+				msg.classList.add('is-error');
+				slugInput.focus();
+				return;
+			}
+			if (!/^[A-Za-z0-9](?:[A-Za-z0-9_-]{1,62}[A-Za-z0-9])?$/.test(slug)) {
+				msg.textContent = i18n.invalid_slug || 'Invalid slug';
+				msg.classList.add('is-error');
+				slugInput.focus();
+				return;
+			}
+
+			submitBtn.disabled = true;
+			submitBtn.textContent = i18n.saving || 'Saving…';
+
+			ajax('ttcls_update', { id: id, url: url, slug: slug })
+				.then(function (resp) {
+					if (!resp || !resp.success) {
+						const err = resp && resp.data && resp.data.message ? resp.data.message : (i18n.update_failed || 'Failed');
+						msg.textContent = err;
+						msg.classList.add('is-error');
+						if (resp && resp.data && resp.data.field === 'slug') slugInput.focus();
+						return;
+					}
+					applyRowUpdate(resp.data);
+					updateStats(resp.data.totals);
+					toast(i18n.updated || 'Link updated.');
+					closeEditModal();
+				})
+				.catch(function () {
+					msg.textContent = i18n.update_failed || 'Network error';
+					msg.classList.add('is-error');
+				})
+				.then(function () {
+					submitBtn.disabled = false;
+					submitBtn.textContent = submitLabel;
+				});
+		});
 	}
 
 	// ---------- Login form (logged-out view) ----------
@@ -533,6 +769,7 @@
 		initCopyButtons();
 		initCreateForm();
 		initDelete();
+		initEdit();
 		initAllLinks();
 		initLoginForm();
 	});
